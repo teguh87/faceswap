@@ -1,5 +1,4 @@
-# Include core requirements
--r requirements.txt
+insightface>=0.7.3
 
 # GPU support (optional)
 onnxruntime-gpu>=1.15.0

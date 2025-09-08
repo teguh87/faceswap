@@ -1,2 +1,5 @@
--r requirements.txt
+opencv-python>=4.7.0
+numpy>=1.21.0
+tqdm>=4.64.0
+insightface>=0.7.3
 onnxruntime-gpu>=1.15.0
