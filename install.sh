@@ -398,9 +398,11 @@ install_python_dependencies() {
 
     if [ "$INSTALL_GPU" = true ]; then
         print_info "Using GPU requirements..."
+        pip uninstall -y onnxruntime || true
         requirements_files=("requirements-gpu.txt")
     elif [ "$INSTALL_DEV" = true ]; then
         print_info "Using development requirements..."
+        pip uninstall -y onnxruntime || true
         requirements_files=("requirements-dev.txt")
     else
         print_info "Using default requirements..."
