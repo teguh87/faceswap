@@ -2,7 +2,7 @@
 
 [![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![PyPI version](https://badge.fury.io/py/face-swap-advanced.svg)](https://badge.fury.io/py/face-swap-advanced)
+[![PyPI version](https://badge.fury.io/py/faceswap.svg)](https://badge.fury.io/py/faceswap)
 
 Advanced face swapping tool with anomaly detection and similarity filtering for both images and videos.
 
@@ -23,16 +23,16 @@ Advanced face swapping tool with anomaly detection and similarity filtering for 
 
 ```bash
 # Basic installation
-pip install face-swap-advanced
+pip install faceswap
 
 # With GPU support
-pip install face-swap-advanced[gpu]
+pip install faceswap[gpu]
 
 # With development tools
-pip install face-swap-advanced[dev]
+pip install faceswap[dev]
 
 # Complete installation
-pip install face-swap-advanced[all]
+pip install faceswap[all]
 ```
 
 ### From Source
@@ -40,7 +40,7 @@ pip install face-swap-advanced[all]
 ```bash
 # Clone the repository
 git clone https://github.com/teguh87/faceswap.git
-cd face-swap-advanced
+cd faceswap
 
 # Install in development mode
 pip install -e .
@@ -171,8 +171,8 @@ Use `--debug` flag to get detailed information about:
 
 ```bash
 # Clone repository
-git clone https://github.com/teguh87/face-swap-advanced.git
-cd face-swap-advanced
+git clone https://github.com/teguh87/faceswap.git
+cd faceswap
 
 # Create virtual environment
 python -m venv venv

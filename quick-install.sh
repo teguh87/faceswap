@@ -16,7 +16,7 @@ print_success() { echo -e "${GREEN}[SUCCESS] $1${NC}"; }
 print_error() { echo -e "${RED}[ERROR] $1${NC}"; }
 
 # Configuration
-REPO_URL="https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/install.sh"
+REPO_URL="https://raw.githubusercontent.com/teguh87/faceswap/main/install.sh"
 TEMP_INSTALLER="/tmp/face_swap_installer.sh"
 
 print_info "Face Swap Advanced - Quick Installer"

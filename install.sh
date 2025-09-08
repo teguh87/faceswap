@@ -15,10 +15,10 @@ CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO_URL="https://github.com/teguh87/face-swap-advanced.git"
-PROJECT_NAME="face-swap-advanced"
+REPO_URL="https://github.com/teguh87/faceswap.git"
+PROJECT_NAME="faceswap"
 PYTHON_MIN_VERSION="3.8"
-DEFAULT_INSTALL_DIR="$HOME/face-swap-advanced"
+DEFAULT_INSTALL_DIR="$HOME/faceswap"
 
 # Global variables
 INSTALL_DIR=""

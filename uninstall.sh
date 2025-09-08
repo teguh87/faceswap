@@ -14,7 +14,7 @@ PURPLE='\033[0;35m'
 NC='\033[0m' # No Color
 
 # Configuration
-DEFAULT_INSTALL_DIR="$HOME/face-swap-advanced"
+DEFAULT_INSTALL_DIR="$HOME/faceswap"
 
 # Global variables
 INSTALL_DIR=""
@@ -172,8 +172,8 @@ uninstall_pip_packages() {
     fi
     
     if [ -n "$python_cmd" ]; then
-        # Uninstall face-swap-advanced package
-        $python_cmd -m pip uninstall face-swap-advanced -y 2>/dev/null || true
+        # Uninstall faceswap package
+        $python_cmd -m pip uninstall faceswap -y 2>/dev/null || true
         
         # Also try to uninstall if installed in development mode
         if [ -f "$INSTALL_DIR/setup.py" ] || [ -f "$INSTALL_DIR/pyproject.toml" ]; then
