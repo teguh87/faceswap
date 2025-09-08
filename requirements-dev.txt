@@ -1,0 +1,22 @@
+# Include core requirements
+-r requirements.txt
+
+# GPU support (optional)
+onnxruntime-gpu>=1.15.0
+
+# Development tools
+pytest>=7.0.0
+pytest-cov>=4.0.0
+black>=22.0.0
+flake8>=5.0.0
+mypy>=1.0.0
+pre-commit>=3.0.0
+
+# Documentation
+sphinx>=5.0.0
+sphinx-rtd-theme>=1.2.0
+myst-parser>=0.18.0
+
+# Build tools
+build>=0.8.0
+twine>=4.0.0

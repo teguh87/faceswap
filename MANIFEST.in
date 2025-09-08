@@ -1,0 +1,32 @@
+# Include documentation
+include README.md
+include LICENSE
+include CHANGELOG.md
+include *.txt
+include *.md
+
+# Include requirements files
+include requirements*.txt
+
+# Include configuration files
+include pyproject.toml
+include setup.cfg
+recursive-include src/face_swap_advanced/config *.json
+recursive-include src/face_swap_advanced/models *.onnx
+
+# Include tests
+recursive-include tests *.py
+
+# Exclude development and build artifacts
+global-exclude __pycache__
+global-exclude *.py[co]
+global-exclude .git*
+global-exclude .coverage
+global-exclude .pytest_cache
+global-exclude .mypy_cache
+global-exclude *.egg-info
+prune build
+prune dist
+prune .git
+prune .github
+prune docs/_build
