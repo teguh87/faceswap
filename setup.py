@@ -49,14 +49,12 @@ setup(
         "opencv-python>=4.7.0",
         "numpy>=1.21.0",
         "tqdm>=4.64.0",
-        "onnxruntime>=1.15.0",
         "insightface>=0.7.3",
         "pathlib2>=2.3.7; python_version<'3.4'",
     ],
     extras_require={
-        "gpu": [
-            "onnxruntime-gpu>=1.15.0",
-        ],
+        "cpu": ["onnxruntime>=1.15.0"],
+        "gpu": ["onnxruntime-gpu>=1.15.0"],
         "dev": [
             "pytest>=7.0.0",
             "pytest-cov>=4.0.0",
