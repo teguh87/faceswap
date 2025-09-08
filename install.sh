@@ -392,50 +392,34 @@ setup_virtual_environment() {
 # Function to install Python dependencies
 install_python_dependencies() {
     print_info "Installing Python dependencies..."
-    
     cd "$INSTALL_DIR"
-    
-    # Determine which requirements to install
-    local requirements_files=("requirements.txt")
-    
+
+    local requirements_files=()
+
     if [ "$INSTALL_GPU" = true ]; then
-        print_info "Including GPU support..."
-        if [ -f "requirements-gpu.txt" ]; then
-            requirements_files+=("requirements-gpu.txt")
-        fi
+        print_info "Using GPU requirements..."
+        requirements_files=("requirements-gpu.txt")
+    elif [ "$INSTALL_DEV" = true ]; then
+        print_info "Using development requirements..."
+        requirements_files=("requirements-dev.txt")
+    else
+        print_info "Using default requirements..."
+        requirements_files=("requirements.txt")
     fi
-    
-    if [ "$INSTALL_DEV" = true ]; then
-        print_info "Including development dependencies..."
-        if [ -f "requirements-dev.txt" ]; then
-            requirements_files+=("requirements-dev.txt")
-        fi
-    fi
-    
-    # Install requirements
+
     for req_file in "${requirements_files[@]}"; do
         if [ -f "$req_file" ]; then
-            print_info "Installing from $req_file..."
-            if [ "$VERBOSE" = true ]; then
-                pip install -r "$req_file"
-            else
-                pip install -r "$req_file" --quiet
-            fi
+            pip install -r "$req_file"
         else
-            print_warning "Requirements file not found: $req_file"
+            print_error "Requirements file not found: $req_file"
+            exit 1
         fi
     done
-    
-    # Install package in development mode
-    print_info "Installing Face Swap Advanced in development mode..."
-    if [ "$VERBOSE" = true ]; then
-        pip install -e .
-    else
-        pip install -e . --quiet
-    fi
-    
+
+    pip install -e .
     print_success "Python dependencies installed"
 }
+
 
 # Function to download models
 download_models() {
