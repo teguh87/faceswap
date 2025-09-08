@@ -8,23 +8,23 @@ This guide covers installation of Face Swap Advanced directly from Git repositor
 
 ```bash
 # Basic installation
-curl -fsSL https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/quick-install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/teguh87/faceswap/main/quick-install.sh | bash
 
 # Or with wget
-wget -O- https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/quick-install.sh | bash
+wget -O- https://raw.githubusercontent.com/teguh87/faceswap/main/quick-install.sh | bash
 ```
 
 ### Quick Installation with Options
 
 ```bash
 # With GPU support and models
-curl -fsSL https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/quick-install.sh | bash -s -- --gpu --models
+curl -fsSL https://raw.githubusercontent.com/teguh87/faceswap/main/quick-install.sh | bash -s -- --gpu --models
 
 # Development installation
-curl -fsSL https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/quick-install.sh | bash -s -- --dev --models
+curl -fsSL https://raw.githubusercontent.com/teguh87/faceswap/main/quick-install.sh | bash -s -- --dev --models
 
 # Custom directory
-curl -fsSL https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/quick-install.sh | bash -s -- --dir /opt/face-swap
+curl -fsSL https://raw.githubusercontent.com/teguh87/faceswap/main/quick-install.sh | bash -s -- --dir /opt/face-swap
 ```
 
 ## Manual Installation
@@ -33,9 +33,9 @@ curl -fsSL https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/qui
 
 ```bash
 # Download the installer
-wget https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/install.sh
+wget https://raw.githubusercontent.com/teguh87/faceswap/main/install.sh
 # Or
-curl -O https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/install.sh
+curl -O https://raw.githubusercontent.com/teguh87/faceswap/main/install.sh
 
 # Make it executable
 chmod +x install.sh
@@ -56,7 +56,7 @@ chmod +x install.sh
 ### Basic Options
 
 ```bash
-# Basic installation (default location: ~/face-swap-advanced)
+# Basic installation (default location: ~/faceswap)
 ./install.sh
 
 # Custom installation directory
@@ -107,10 +107,10 @@ chmod +x install.sh
 
 ```bash
 # Download and run installer
-curl -fsSL https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/teguh87/faceswap/main/install.sh | bash
 
 # Activate environment
-cd ~/face-swap-advanced
+cd ~/faceswap
 source activate_face_swap.sh
 
 # Test installation
@@ -121,14 +121,14 @@ face-swap --help
 
 ```bash
 # Download installer
-wget https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/install.sh
+wget https://raw.githubusercontent.com/teguh87/faceswap/main/install.sh
 chmod +x install.sh
 
 # Install with development tools
 ./install.sh --dev --models --verbose
 
 # Activate environment
-cd ~/face-swap-advanced
+cd ~/faceswap
 source activate_face_swap.sh
 
 # Run tests
@@ -139,7 +139,7 @@ make test
 
 ```bash
 # Install in system directory (requires sudo for dependencies)
-sudo ./install.sh --dir /opt/face-swap-advanced --skip-deps --no-venv
+sudo ./install.sh --dir /opt/faceswap --skip-deps --no-venv
 
 # Create systemd service (example)
 sudo systemctl enable face-swap-service
@@ -187,7 +187,7 @@ sudo apt update && sudo apt upgrade -y
 sudo apt install -y git python3 python3-pip python3-venv curl wget
 
 # Run installer
-curl -fsSL https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/teguh87/faceswap/main/install.sh | bash
 ```
 
 ### CentOS/RHEL/Fedora
@@ -200,7 +200,7 @@ sudo yum update -y  # or sudo dnf update -y for Fedora
 sudo yum install -y git python3 python3-pip curl wget
 
 # Run installer
-curl -fsSL https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/teguh87/faceswap/main/install.sh | bash
 ```
 
 ### macOS
@@ -213,7 +213,7 @@ curl -fsSL https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/ins
 brew install git python wget
 
 # Run installer
-curl -fsSL https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/teguh87/faceswap/main/install.sh | bash
 ```
 
 ### Windows (WSL)
@@ -227,7 +227,7 @@ sudo apt update && sudo apt upgrade -y
 sudo apt install -y build-essential
 
 # Run installer
-curl -fsSL https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/teguh87/faceswap/main/install.sh | bash
 ```
 
 ## Post-Installation
@@ -236,7 +236,7 @@ curl -fsSL https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/ins
 
 ```bash
 # Activate environment (if using virtual environment)
-cd ~/face-swap-advanced
+cd ~/faceswap
 source activate_face_swap.sh
 
 # Test CLI
@@ -299,7 +299,7 @@ face-swap \
 4. **Network Issues**
    ```bash
    # Download manually and run
-   wget https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/install.sh
+   wget https://raw.githubusercontent.com/teguh87/faceswap/main/install.sh
    ./install.sh --verbose
    ```
 
@@ -326,10 +326,10 @@ face-swap \
 
 ```bash
 # Quick uninstall
-curl -fsSL https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/uninstall.sh | bash
+curl -fsSL https://raw.githubusercontent.com/teguh87/faceswap/main/uninstall.sh | bash
 
 # Or download first
-wget https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/uninstall.sh
+wget https://raw.githubusercontent.com/teguh87/faceswap/main/uninstall.sh
 chmod +x uninstall.sh
 ./uninstall.sh
 ```
@@ -378,7 +378,7 @@ machines=("server1" "server2" "server3")
 
 for machine in "${machines[@]}"; do
   echo "Installing on $machine..."
-  ssh "$machine" "curl -fsSL https://raw.githubusercontent.com/teguh87/face-swap-advanced/main/install.sh | bash -s -- --gpu --models"
+  ssh "$machine" "curl -fsSL https://raw.githubusercontent.com/teguh87/faceswap/main/install.sh | bash -s -- --gpu --models"
 done
 ```
 
@@ -386,14 +386,14 @@ done
 
 ```bash
 # Clone repository
-git clone https://github.com/teguh87/face-swap-advanced.git
-cd face-swap-advanced
+git clone https://github.com/teguh87/faceswap.git
+cd faceswap
 
 # Build Docker image
-docker build -t face-swap-advanced .
+docker build -t faceswap .
 
 # Run container
-docker run -it --gpus all -v $(pwd)/data:/app/data face-swap-advanced
+docker run -it --gpus all -v $(pwd)/data:/app/data faceswap
 ```
 
 ## Updates
@@ -402,7 +402,7 @@ docker run -it --gpus all -v $(pwd)/data:/app/data face-swap-advanced
 
 ```bash
 # Navigate to installation directory
-cd ~/face-swap-advanced
+cd ~/faceswap
 
 # Pull latest changes
 git pull origin main

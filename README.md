@@ -39,7 +39,7 @@ pip install face-swap-advanced[all]
 
 ```bash
 # Clone the repository
-git clone https://github.com/teguh87/face-swap-advanced.git
+git clone https://github.com/teguh87/faceswap.git
 cd face-swap-advanced
 
 # Install in development mode
