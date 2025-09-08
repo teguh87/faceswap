@@ -18,14 +18,14 @@ def read_requirements(filename):
         return [line.strip() for line in f if line.strip() and not line.startswith('#')]
 
 setup(
-    name="face-swap-advanced",
+    name="faceswap",
     version="1.2.0",
     author="Face Swap Developer",
     author_email="developer@example.com",
     description="Advanced face swapping tool with anomaly detection and similarity filtering",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/yourusername/face-swap-advanced",
+    url="https://github.com/teguh87/faceswap",
     packages=find_packages(where="src"),
     package_dir={"": "src"},
     classifiers=[
@@ -102,8 +102,8 @@ setup(
         "insightface"
     ],
     project_urls={
-        "Bug Reports": "https://github.com/yourusername/face-swap-advanced/issues",
-        "Source": "https://github.com/yourusername/face-swap-advanced",
-        "Documentation": "https://face-swap-advanced.readthedocs.io/",
+        "Bug Reports": "https://github.com/teguh87/faceswap/issues",
+        "Source": "https://github.com/teguh87/faceswap",
+        "Documentation": "https://faceswap.readthedocs.io/",
     },
 )
