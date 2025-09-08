@@ -1,5 +1,7 @@
+#!/usr/bin/env python3
 """
-Face Swap Advanced - Core face swapping functionality
+Face Swap Advanced - Standalone Script
+This is a complete standalone version that can be run without package installation.
 """
 
 from tqdm import tqdm
@@ -29,25 +31,30 @@ class FaceSwapConfig:
     batch_size: int = 8
     device: str = "auto"
     providers_override: Optional[List[str]] = None
+    min_similarity: float = 0.3  # Minimum similarity threshold
+    max_face_area_ratio: float = 0.8  # Maximum face area as ratio of frame area
+    min_face_size: int = 50  # Minimum face size in pixels
     
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> 'FaceSwapConfig':
         """Create configuration from command line arguments"""
-        providers_override = FaceSwapUtils.parse_providers_override(args.providers)
+        providers_override = FaceSwapUtils.parse_providers_override(getattr(args, 'providers', None))
+        
+        # Handle missing attributes gracefully with defaults
         return cls(
             src_img_path=args.src,
             ref_img_path=args.ref,
             tgt_path=args.tgt,
             model_path=args.model,
-            out_dir=args.out,
-            debug=args.debug,
-            skip=args.skip,
-            batch_size=args.batch,
-            device=args.device,
+            out_dir=getattr(args, 'out', 'output'),
+            debug=getattr(args, 'debug', False),
+            skip=getattr(args, 'skip', 1),
+            batch_size=getattr(args, 'batch', 8),
+            device=getattr(args, 'device', 'auto'),
             providers_override=providers_override,
-            min_similarity=args.min_similarity,
-            max_face_area_ratio=args.max_face_ratio,
-            min_face_size=args.min_face_size
+            min_similarity=getattr(args, 'min_similarity', 0.3),
+            max_face_area_ratio=getattr(args, 'max_face_ratio', 0.8),
+            min_face_size=getattr(args, 'min_face_size', 50)
         )
 
 
@@ -69,11 +76,7 @@ class FaceSwapUtils:
 
     @staticmethod
     def parse_device(device: str) -> tuple[int, List[str]]:
-        """
-        Parse device string and return (ctx_id, providers)
-        - ctx_id for FaceAnalysis.prepare: >=0 for CUDA device index, -1 for CPU
-        - providers list for ONNX Runtime models (INSwapper and (internally) FaceAnalysis)
-        """
+        """Parse device string and return (ctx_id, providers)"""
         device = (device or "auto").lower().strip()
 
         if device == "cpu":
@@ -110,21 +113,76 @@ class FaceSwapUtils:
             selected = available_providers
         return selected
 
+    @staticmethod
+    def is_face_valid(face, frame_shape: tuple, config: FaceSwapConfig) -> bool:
+        """Check if a detected face is valid (not anomalous)"""
+        if face is None:
+            return False
+            
+        # Check face bounding box
+        x1, y1, x2, y2 = face.bbox.astype(int)
+        face_width = x2 - x1
+        face_height = y2 - y1
+        
+        # Check minimum face size
+        if face_width < config.min_face_size or face_height < config.min_face_size:
+            return False
+        
+        # Check if face is within frame bounds
+        frame_height, frame_width = frame_shape[:2]
+        if x1 < 0 or y1 < 0 or x2 > frame_width or y2 > frame_height:
+            return False
+        
+        # Check face area ratio (avoid faces that are too large - might be false positives)
+        face_area = face_width * face_height
+        frame_area = frame_height * frame_width
+        face_area_ratio = face_area / frame_area
+        
+        if face_area_ratio > config.max_face_area_ratio:
+            return False
+        
+        # Check face confidence if available
+        if hasattr(face, 'det_score') and face.det_score < 0.5:
+            return False
+            
+        return True
+
+    @staticmethod
+    def find_best_matching_face(faces, ref_face, frame_shape: tuple, config: FaceSwapConfig):
+        """Find the best matching face from detected faces, filtering out anomalies"""
+        if not faces:
+            return None, 0
+        
+        # Filter valid faces first
+        valid_faces = [(face, i) for i, face in enumerate(faces) 
+                      if FaceSwapUtils.is_face_valid(face, frame_shape, config)]
+        
+        if not valid_faces:
+            return None, 0
+        
+        # Calculate similarities for valid faces
+        similarities = []
+        for face, original_idx in valid_faces:
+            similarity = FaceSwapUtils.cosine_similarity(ref_face.embedding, face.embedding)
+            similarities.append((similarity, face, original_idx))
+        
+        # Sort by similarity and get the best one
+        similarities.sort(key=lambda x: x[0], reverse=True)
+        best_similarity, best_face, best_idx = similarities[0]
+        
+        # Check if similarity meets minimum threshold
+        if best_similarity < config.min_similarity:
+            return None, 0
+            
+        return best_face, best_similarity
+
 
 class FaceSwapper:
     """Main face swap class"""
     
     @staticmethod
     def face_swap(config: FaceSwapConfig) -> str:
-        """
-        Static method to perform face swapping on images or videos
-        
-        Args:
-            config: FaceSwapConfig object containing all parameters
-            
-        Returns:
-            str: Path to the output file
-        """
+        """Static method to perform face swapping on images or videos"""
         # Device / providers
         ctx_id, providers = FaceSwapUtils.parse_device(config.device)
         if config.providers_override:
@@ -188,25 +246,30 @@ class FaceSwapper:
         if not tgt_faces:
             raise RuntimeError("No faces detected in target image!")
 
-        similarities = [FaceSwapUtils.cosine_similarity(ref_face.embedding, f.embedding) for f in tgt_faces]
-        best_idx = int(np.argmax(similarities))
-        best_face = tgt_faces[best_idx]
+        # Use the enhanced face matching with anomaly detection
+        best_face, similarity = FaceSwapUtils.find_best_matching_face(
+            tgt_faces, ref_face, tgt_img.shape, config
+        )
+        
+        if best_face is None:
+            raise RuntimeError(f"No suitable face found in target image! "
+                             f"Minimum similarity threshold: {config.min_similarity}")
 
         result_img = swapper.get(tgt_img.copy(), best_face, src_face, paste_back=True)
 
         out_file = out_dir / FaceSwapUtils.random_name(8, ".png")
         cv2.imwrite(str(out_file), result_img)
-        print(f"[INFO] Saved swapped image: {out_file}")
+        print(f"[INFO] Saved swapped image: {out_file} (similarity: {similarity:.3f})")
 
         if config.debug:
-            FaceSwapper._save_debug_image(tgt_img, tgt_faces, best_idx, out_dir)
+            FaceSwapper._save_debug_image(tgt_img, tgt_faces, -1, out_dir)
 
         return str(out_file)
 
     @staticmethod
     def _process_video(config: FaceSwapConfig, app: FaceAnalysis, swapper: INSwapper, 
                       src_face, ref_face, out_dir: Path) -> str:
-        """Process a video file"""
+        """Process a video file with anomaly detection and similarity filtering"""
         cap = cv2.VideoCapture(str(config.tgt_path))
         if not cap.isOpened():
             raise RuntimeError(f"Could not open video: {config.tgt_path}")
@@ -221,12 +284,15 @@ class FaceSwapper:
 
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT) or 0)
         print(f"[INFO] Total frames in video: {total_frames}")
+        print(f"[INFO] Similarity threshold: {config.min_similarity}")
 
         frame_idx = 0
         frames_buffer = []
         processed_frames = 0
+        skipped_frames = 0
+        swapped_frames = 0
 
-        with tqdm(total=total_frames, desc="Swapping faces", unit="frame") as pbar:
+        with tqdm(total=total_frames, desc="Processing video", unit="frame") as pbar:
             try:
                 while True:
                     ret, frame = cap.read()
@@ -234,49 +300,95 @@ class FaceSwapper:
                         break
                     frame_idx += 1
 
+                    # Skip frames based on skip parameter
                     if config.skip > 1 and (frame_idx % config.skip != 0):
                         writer.write(frame)
                         pbar.update(1)
                         continue
 
-                    frames_buffer.append(frame)
+                    frames_buffer.append((frame, frame_idx))
 
                     # Process in batches
                     if len(frames_buffer) >= config.batch_size:
-                        FaceSwapper._process_frame_batch(frames_buffer, app, swapper, src_face, ref_face, writer, pbar)
+                        batch_stats = FaceSwapper._process_frame_batch_with_filtering(
+                            frames_buffer, app, swapper, src_face, ref_face, writer, pbar, config
+                        )
+                        processed_frames += len(frames_buffer)
+                        skipped_frames += batch_stats['skipped']
+                        swapped_frames += batch_stats['swapped']
                         frames_buffer = []
-                        processed_frames += config.batch_size
 
                 # Process leftover frames
                 if frames_buffer:
-                    FaceSwapper._process_frame_batch(frames_buffer, app, swapper, src_face, ref_face, writer, pbar)
+                    batch_stats = FaceSwapper._process_frame_batch_with_filtering(
+                        frames_buffer, app, swapper, src_face, ref_face, writer, pbar, config
+                    )
                     processed_frames += len(frames_buffer)
+                    skipped_frames += batch_stats['skipped']
+                    swapped_frames += batch_stats['swapped']
 
             finally:
                 cap.release()
                 writer.release()
 
+        print(f"[INFO] Video processing completed:")
+        print(f"[INFO] - Total frames processed: {processed_frames}")
+        print(f"[INFO] - Frames with face swapping: {swapped_frames}")
+        print(f"[INFO] - Frames skipped (low similarity/anomalies): {skipped_frames}")
+        print(f"[INFO] - Success rate: {(swapped_frames/processed_frames)*100:.1f}%")
         print(f"[INFO] Saved swapped video: {out_file}")
         return str(out_file)
 
     @staticmethod
-    def _process_frame_batch(frames_buffer: List[np.ndarray], app: FaceAnalysis, swapper: INSwapper,
-                           src_face, ref_face, writer: cv2.VideoWriter, pbar: tqdm) -> None:
-        """Process a batch of video frames"""
-        faces_batch = [app.get(f) for f in frames_buffer]
-        for frame, faces in zip(frames_buffer, faces_batch):
-            if not faces:
+    def _process_frame_batch_with_filtering(frames_data: List[tuple], app: FaceAnalysis, swapper: INSwapper,
+                                          src_face, ref_face, writer: cv2.VideoWriter, pbar: tqdm, 
+                                          config: FaceSwapConfig) -> dict:
+        """Process a batch of video frames with anomaly detection and similarity filtering"""
+        frames = [frame_data[0] for frame_data in frames_data]
+        frame_indices = [frame_data[1] for frame_data in frames_data]
+        
+        # Detect faces in batch
+        faces_batch = [app.get(f) for f in frames]
+        
+        stats = {'skipped': 0, 'swapped': 0}
+        
+        for i, (frame, faces, frame_idx) in enumerate(zip(frames, faces_batch, frame_indices)):
+            try:
+                if not faces:
+                    # No faces detected - write original frame
+                    writer.write(frame)
+                    stats['skipped'] += 1
+                    if config.debug:
+                        print(f"[DEBUG] Frame {frame_idx}: No faces detected")
+                else:
+                    # Find best matching valid face
+                    best_face, similarity = FaceSwapUtils.find_best_matching_face(
+                        faces, ref_face, frame.shape, config
+                    )
+                    
+                    if best_face is None:
+                        # No suitable face found - write original frame
+                        writer.write(frame)
+                        stats['skipped'] += 1
+                        if config.debug:
+                            print(f"[DEBUG] Frame {frame_idx}: No suitable face found (low similarity or anomaly)")
+                    else:
+                        # Perform face swap
+                        result_frame = swapper.get(frame.copy(), best_face, src_face, paste_back=True)
+                        writer.write(result_frame)
+                        stats['swapped'] += 1
+                        if config.debug:
+                            print(f"[DEBUG] Frame {frame_idx}: Face swapped (similarity: {similarity:.3f})")
+                            
+            except Exception as e:
+                # Handle any errors during processing - write original frame
+                print(f"[WARN] Error processing frame {frame_idx}: {e}")
                 writer.write(frame)
-                pbar.update(1)
-                continue
-
-            similarities = [FaceSwapUtils.cosine_similarity(ref_face.embedding, f.embedding) for f in faces]
-            best_idx = int(np.argmax(similarities))
-            best_face = faces[best_idx]
-
-            result_frame = swapper.get(frame.copy(), best_face, src_face, paste_back=True)
-            writer.write(result_frame)
+                stats['skipped'] += 1
+            
             pbar.update(1)
+                
+        return stats
 
     @staticmethod
     def _save_debug_image(tgt_img: np.ndarray, tgt_faces: List, best_idx: int, out_dir: Path) -> None:
@@ -295,32 +407,88 @@ class FaceSwapper:
 
 def create_argument_parser() -> argparse.ArgumentParser:
     """Create and configure argument parser"""
-    parser = argparse.ArgumentParser(description="Face Swap (Image/Video) with selectable execution provider + batching")
+    parser = argparse.ArgumentParser(description="Face Swap (Image/Video) with anomaly detection and similarity filtering")
     parser.add_argument("--src", required=True, help="Path to source face image.")
     parser.add_argument("--ref", required=True, help="Path to reference face image.")
     parser.add_argument("--tgt", required=True, help="Path to target image or video.")
     parser.add_argument("--model", required=True, help="Path to inswapper_128.onnx model.")
     parser.add_argument("--out", default="output", help="Directory to save results.")
-    parser.add_argument("--debug", action="store_true", help="Overlay debug info (face boxes & IDs).")
+    parser.add_argument("--debug", action="store_true", help="Enable debug output and save debug info.")
     parser.add_argument("--skip", type=int, default=1, help="Frame skip factor for video (1 = no skip).")
     parser.add_argument("--batch", type=int, default=8, help="Batch size for video frame processing.")
     parser.add_argument("--device", default="auto",
                         help="Execution device: auto | cpu | cuda[:index]. Examples: cpu, cuda, cuda:0, cuda:1")
     parser.add_argument("--providers", default=None,
                         help="Override providers list (comma-separated). Example: 'CUDAExecutionProvider,CPUExecutionProvider'")
+    parser.add_argument("--min-similarity", type=float, default=0.3, dest="min_similarity",
+                        help="Minimum cosine similarity threshold for face matching (0.0-1.0)")
+    parser.add_argument("--max-face-ratio", type=float, default=0.8, dest="max_face_ratio", 
+                        help="Maximum face area as ratio of frame area (0.0-1.0)")
+    parser.add_argument("--min-face-size", type=int, default=50, dest="min_face_size",
+                        help="Minimum face size in pixels")
     return parser
 
 
-# ----------------------------
-# CLI
-# ----------------------------
+def main():
+    """Main entry point for the standalone script"""
+    try:
+        parser = create_argument_parser()
+        args = parser.parse_args()
+        
+        # Validate input paths
+        if not Path(args.src).exists():
+            print(f"[ERROR] Source image not found: {args.src}")
+            return 1
+            
+        if not Path(args.ref).exists():
+            print(f"[ERROR] Reference image not found: {args.ref}")
+            return 1
+            
+        if not Path(args.tgt).exists():
+            print(f"[ERROR] Target file not found: {args.tgt}")
+            return 1
+            
+        if not Path(args.model).exists():
+            print(f"[ERROR] Model file not found: {args.model}")
+            return 1
+        
+        # Create configuration from arguments
+        try:
+            config = FaceSwapConfig.from_args(args)
+        except Exception as e:
+            print(f"[ERROR] Configuration error: {e}")
+            return 1
+        
+        # Print configuration summary
+        print("[INFO] Face Swap Advanced - Starting Processing")
+        print(f"[INFO] Source: {config.src_img_path}")
+        print(f"[INFO] Reference: {config.ref_img_path}")
+        print(f"[INFO] Target: {config.tgt_path}")
+        print(f"[INFO] Model: {config.model_path}")
+        print(f"[INFO] Output directory: {config.out_dir}")
+        print(f"[INFO] Device: {config.device}")
+        print(f"[INFO] Minimum similarity threshold: {config.min_similarity}")
+        print(f"[INFO] Maximum face area ratio: {config.max_face_area_ratio}")
+        print(f"[INFO] Minimum face size: {config.min_face_size}")
+        print(f"[INFO] Batch size: {config.batch_size}")
+        
+        # Perform face swap using the static method
+        result_path = FaceSwapper.face_swap(config)
+        
+        print(f"[SUCCESS] Face swap completed successfully!")
+        print(f"[SUCCESS] Output saved to: {result_path}")
+        return 0
+        
+    except KeyboardInterrupt:
+        print("\n[INFO] Process interrupted by user")
+        return 1
+    except Exception as e:
+        print(f"[ERROR] An error occurred: {e}")
+        if hasattr(args, 'debug') and args.debug:
+            import traceback
+            traceback.print_exc()
+        return 1
+
+
 if __name__ == "__main__":
-    parser = create_argument_parser()
-    args = parser.parse_args()
-    
-    # Create configuration from arguments
-    config = FaceSwapConfig.from_args(args)
-    
-    # Perform face swap using the static method
-    result_path = FaceSwapper.face_swap(config)
-    print(f"[SUCCESS] Face swap completed. Output saved to: {result_path}")
+    exit(main())
