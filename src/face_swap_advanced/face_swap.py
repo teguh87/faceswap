@@ -428,15 +428,23 @@ class FaceSwapper:
                             x2, y2 = min(frame.shape[1], x2+pad), min(frame.shape[0], y2+pad)
                             cv2.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
 
-                            # Safe unpacking
+                            # Apply GFPGAN and safe unpacking
                             outputs = FaceSwapper.gfpgan_restorer.restore_face(swapped_frame, mask)
                             restored_full = outputs[1]  # second output is the full image
 
-                            # Paste manually
+                            # Paste back into frame safely
                             final_frame = frame.copy()
                             roi = restored_full[y1:y2, x1:x2]
                             mask_roi = mask[y1:y2, x1:x2]
-                            final_frame[y1:y2, x1:x2] = np.where(mask_roi[..., None] == 255, roi, final_frame[y1:y2, x1:x2])
+
+                            # Ensure shapes match
+                            if roi.shape[:2] != mask_roi.shape:
+                                mask_roi = cv2.resize(mask_roi, (roi.shape[1], roi.shape[0]))
+
+                            # Optional: smooth mask edges
+                            mask_roi = cv2.GaussianBlur(mask_roi, (7, 7), 0)
+
+                            final_frame[y1:y2, x1:x2] = np.where(mask_roi[..., None] > 0, roi, final_frame[y1:y2, x1:x2])
 
                             writer.write(final_frame)
                             stats['swapped'] += 1
