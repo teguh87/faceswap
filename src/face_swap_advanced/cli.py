@@ -8,7 +8,7 @@ import argparse
 from pathlib import Path
 
 from .face_swap import FaceSwapConfig, FaceSwapper, create_argument_parser
-
+from .face_restorer import FaceRestorer
 
 def main():
     """Main entry point for the CLI application"""
@@ -45,7 +45,13 @@ def main():
         print(f"[INFO] Output directory: {config.out_dir}")
         print(f"[INFO] Device: {config.device}")
         print(f"[INFO] Minimum similarity threshold: {config.min_similarity}")
+        print(f"[INFO] GFGAN model: {config.gfpgan_model}")
+        print(f"[INFO] Upscale: {config.gfpgan_upscale}")
         
+         # 1. Initialize GFPGAN restorer if model path provided
+        restorer = FaceRestorer(config.gfpgan_model, upscale=config.gfpgan_upscale) if config.gfpgan_model else None
+        FaceSwapper.set_restorer(restorer)
+
         # Perform face swap using the static method
         result_path = FaceSwapper.face_swap(config)
         

@@ -514,12 +514,13 @@ def main():
         print(f"[INFO] Model: {config.model_path}")
         print(f"[INFO] Output directory: {config.out_dir}")
         print(f"[INFO] Device: {config.device}")
+        print(f"[INFO] GFGAN model: {config.gfpgan_model}")
+        print(f"[INFO] Upscale: {config.gfpgan_upscale}")
         print(f"[INFO] Minimum similarity threshold: {config.min_similarity}")
         print(f"[INFO] Maximum face area ratio: {config.max_face_area_ratio}")
         print(f"[INFO] Minimum face size: {config.min_face_size}")
         print(f"[INFO] Batch size: {config.batch_size}")
-        print(f"[INFO] GFGAN model: {config.gfpgan_model}")
-        print(f"[INFO] Upscale: {config.gfpgan_upscale}")
+        
 
         # 1. Initialize GFPGAN restorer if model path provided
         restorer = FaceRestorer(config.gfpgan_model, upscale=config.gfpgan_upscale) if config.gfpgan_model else None
