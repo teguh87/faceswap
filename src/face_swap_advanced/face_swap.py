@@ -421,7 +421,7 @@ class FaceSwapper:
                         """
                         # Step 2: restore with GFPGAN if available
                         if FaceSwapper.gfpgan_restorer:
-                            print(f"[INFO] Restoring frame {frame_idx} face with GFPGAN...")
+                            # print(f"[INFO] Restoring frame {frame_idx} face with GFPGAN...")
                             # Create face mask with padding
                             pad = 15
                             mask = np.zeros(frame.shape[:2], dtype=np.uint8)
@@ -429,7 +429,9 @@ class FaceSwapper:
                             cv2.rectangle(mask, (x1-pad, y1-pad), (x2+pad, y2+pad), 255, -1)
 
                             # Apply GFPGAN to the swapped frame
-                            restored_frame = FaceSwapper.gfpgan_restorer.restore_face(swapped_frame, mask)
+                            # returns: restored_face, restored_face_full
+                            restored_frame, _ = FaceSwapper.gfpgan_restorer.restore_face(swapped_frame, mask)
+
                         else:
                             restored_frame = swapped_frame
 
