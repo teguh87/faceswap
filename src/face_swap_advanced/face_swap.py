@@ -435,24 +435,28 @@ class FaceSwapper:
                                 else:
                                     cv2.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
                                     
-                                    # Apply GFPGAN with proper unpacking
-                                    outputs = FaceSwapper.gfpgan_restorer.restore_face(swapped_frame, mask)
-                                    
-                                    # Handle different return formats from GFPGAN
-                                    if isinstance(outputs, tuple):
-                                        if len(outputs) == 2:
-                                            _, restored_full = outputs
-                                        elif len(outputs) == 3:
-                                            _, restored_full, _ = outputs
+                                    # Apply GFPGAN with isolated error handling
+                                    try:
+                                        outputs = FaceSwapper.gfpgan_restorer.restore_face(swapped_frame, mask)
+                                        restored_full = outputs[1]  # Assume second output is the full image
+                                    except ValueError as ve:
+                                        # Handle "too many values to unpack" or similar unpacking errors
+                                        if "unpack" in str(ve):
+                                            if config.debug:
+                                                print(f"[DEBUG] Frame {frame_idx}: GFPGAN unpacking error, using swapped frame")
                                         else:
                                             if config.debug:
-                                                print(f"[DEBUG] Frame {frame_idx}: Unexpected GFPGAN output format: {len(outputs)} values")
-                                            writer.write(swapped_frame)
-                                            stats['swapped'] += 1
-                                            continue
-                                    else:
-                                        # Single return value
-                                        restored_full = outputs
+                                                print(f"[DEBUG] Frame {frame_idx}: GFPGAN value error: {ve}")
+                                        writer.write(swapped_frame)
+                                        stats['swapped'] += 1
+                                        continue
+                                    except (IndexError, TypeError) as e:
+                                        # Handle index errors or type issues
+                                        if config.debug:
+                                            print(f"[DEBUG] Frame {frame_idx}: GFPGAN output format error: {e}")
+                                        writer.write(swapped_frame)
+                                        stats['swapped'] += 1
+                                        continue
                                     
                                     # Validate restored image
                                     if restored_full is None or restored_full.size == 0:
