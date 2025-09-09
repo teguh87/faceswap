@@ -412,24 +412,30 @@ class FaceSwapper:
                             print(f"[DEBUG] Frame {frame_idx}: No suitable face found (low similarity or anomaly)")
                     else:
                         # Perform face swap
-                        result_frame = swapper.get(frame.copy(), best_face, src_face, paste_back=True)
+                        swapped_frame = swapper.get(frame.copy(), best_face, src_face, paste_back=True)
                         """
                         writer.write(result_frame)
                         stats['swapped'] += 1
                         if config.debug:
                             print(f"[DEBUG] Frame {frame_idx}: Face swapped (similarity: {similarity:.3f})")
                         """
-                        # GFPGAN restoration if available
+                        # Step 2: restore with GFPGAN if available
                         if FaceSwapper.gfpgan_restorer:
-                            x1, y1, x2, y2 = best_face.bbox.astype(int)
+                            print(f"[INFO] Restoring frame {frame_idx} face with GFPGAN...")
+                            # Create face mask with padding
+                            pad = 15
                             mask = np.zeros(frame.shape[:2], dtype=np.uint8)
-                            cv2.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
-                            swapped_face = FaceSwapper.gfpgan_restorer.restore_face(swapped_face, mask)
+                            x1, y1, x2, y2 = best_face.bbox.astype(int)
+                            cv2.rectangle(mask, (x1-pad, y1-pad), (x2+pad, y2+pad), 255, -1)
 
-                        # Paste back into original frame
-                        final_frame = swapper.get(frame.copy(), best_face, src_face, paste_back=True)
-                        writer.write(final_frame)
-                        stats['swapped'] += 1    
+                            # Apply GFPGAN to the swapped frame
+                            restored_frame = FaceSwapper.gfpgan_restorer.restore_face(swapped_frame, mask)
+                        else:
+                            restored_frame = swapped_frame
+
+                        # Step 3: write the frame
+                        writer.write(restored_frame)
+                        stats['swapped'] += 1
             except Exception as e:
                 # Handle any errors during processing - write original frame
                 print(f"[WARN] Error processing frame {frame_idx}: {e}")
