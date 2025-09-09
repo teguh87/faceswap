@@ -435,7 +435,7 @@ download_models() {
     mkdir -p models
     
     # Download inswapper model (example URL - replace with actual)
-    local model_url="https://github.com/deepinsight/insightface/releases/download/v0.7/inswapper_128.onnx"
+    local model_url="https://huggingface.co/xingren23/comfyflow-models/resolve/976de8449674de379b02c144d0b3cfa2b61482f2/insightface/inswapper_128.onnx"
     local model_file="models/inswapper_128.onnx"
     
     if [ ! -f "$model_file" ]; then
