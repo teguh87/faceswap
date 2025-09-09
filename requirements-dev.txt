@@ -1,4 +1,5 @@
 insightface>=0.7.3
+gfpgan
 
 # GPU support (optional)
 onnxruntime-gpu>=1.15.0

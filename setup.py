@@ -51,6 +51,7 @@ setup(
         "tqdm>=4.64.0",
         "insightface>=0.7.3",
         "pathlib2>=2.3.7; python_version<'3.4'",
+        "gfpgan",
     ],
     extras_require={
         "cpu": ["onnxruntime>=1.15.0"],
