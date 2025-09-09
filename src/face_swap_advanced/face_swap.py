@@ -421,24 +421,26 @@ class FaceSwapper:
                         """
                         # Step 2: restore with GFPGAN if available
                         if FaceSwapper.gfpgan_restorer:
-                            # print(f"[INFO] Restoring frame {frame_idx} face with GFPGAN...")
-                            # Create face mask with padding
+                            # Create mask with optional padding
                             pad = 15
                             mask = np.zeros(frame.shape[:2], dtype=np.uint8)
                             x1, y1, x2, y2 = best_face.bbox.astype(int)
-                            cv2.rectangle(mask, (x1-pad, y1-pad), (x2+pad, y2+pad), 255, -1)
+                            x1, y1 = max(0, x1-pad), max(0, y1-pad)
+                            x2, y2 = min(frame.shape[1], x2+pad), min(frame.shape[0], y2+pad)
+                            cv2.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
 
-                            # Apply GFPGAN to the swapped frame
-                            # returns: restored_face, restored_face_full
-                            restored_frame, _, _ = FaceSwapper.gfpgan_restorer.restore_face(swapped_frame, mask, paste_back=True)
+                            # Restore face (v1.x API)
+                            restored_face, restored_full = FaceSwapper.gfpgan_restorer.restore_face(swapped_frame, mask)
 
+                            # Paste manually
+                            final_frame = frame.copy()
+                            roi = restored_full[y1:y2, x1:x2]
+                            mask_roi = mask[y1:y2, x1:x2]
+                            final_frame[y1:y2, x1:x2] = np.where(mask_roi[..., None] == 255, roi, final_frame[y1:y2, x1:x2])
 
-                        else:
-                            restored_frame = swapped_frame
+                            writer.write(final_frame)
+                            stats['swapped'] += 1
 
-                        # Step 3: write the frame
-                        writer.write(restored_frame)
-                        stats['swapped'] += 1
             except Exception as e:
                 # Handle any errors during processing - write original frame
                 print(f"[WARN] Error processing frame {frame_idx}: {e}")
