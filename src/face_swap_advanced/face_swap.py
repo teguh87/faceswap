@@ -17,6 +17,8 @@ import onnxruntime as ort
 from insightface.app import FaceAnalysis
 from insightface.model_zoo.inswapper import INSwapper
 
+from .face_restorer import FaceRestorer
+
 
 @dataclass
 class FaceSwapConfig:
@@ -179,6 +181,14 @@ class FaceSwapUtils:
 
 class FaceSwapper:
     """Main face swap class"""
+
+    # Add GFPGAN restorer to swapper
+    gfpgan_restorer: Optional[FaceRestorer] = None
+
+    @staticmethod
+    def set_restorer(restorer: Optional[FaceRestorer]):
+        """Set the GFPGAN restorer"""
+        FaceSwapper.gfpgan_restorer = restorer
     
     @staticmethod
     def face_swap(config: FaceSwapConfig) -> str:
@@ -254,7 +264,7 @@ class FaceSwapper:
         if best_face is None:
             raise RuntimeError(f"No suitable face found in target image! "
                              f"Minimum similarity threshold: {config.min_similarity}")
-
+        """
         result_img = swapper.get(tgt_img.copy(), best_face, src_face, paste_back=True)
 
         out_file = out_dir / FaceSwapUtils.random_name(8, ".png")
@@ -264,7 +274,26 @@ class FaceSwapper:
         if config.debug:
             FaceSwapper._save_debug_image(tgt_img, tgt_faces, -1, out_dir)
 
+        return str(out_file)    
+        """
+        swapped_face = swapper.get(tgt_img.copy(), best_face, src_face, paste_back=False)
+
+        # Apply GFPGAN if available
+        if FaceSwapper.gfpgan_restorer:
+            # Generate face mask
+            mask = np.zeros(tgt_img.shape[:2], dtype=np.uint8)
+            x1, y1, x2, y2 = best_face.bbox.astype(int)
+            cv2.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
+            swapped_face = FaceSwapper.gfpgan_restorer.restore_face(swapped_face, mask)
+
+        # Paste back using original swapper method
+        final_result = swapper.get(tgt_img.copy(), best_face, src_face, paste_back=True)
+        
+        out_file = out_dir / FaceSwapUtils.random_name(8, ".png")
+        cv2.imwrite(str(out_file), final_result)
+        print(f"[INFO] Saved swapped image: {out_file} (similarity: {similarity:.3f})")
         return str(out_file)
+        
 
     @staticmethod
     def _process_video(config: FaceSwapConfig, app: FaceAnalysis, swapper: INSwapper, 
@@ -375,11 +404,23 @@ class FaceSwapper:
                     else:
                         # Perform face swap
                         result_frame = swapper.get(frame.copy(), best_face, src_face, paste_back=True)
+                        """
                         writer.write(result_frame)
                         stats['swapped'] += 1
                         if config.debug:
                             print(f"[DEBUG] Frame {frame_idx}: Face swapped (similarity: {similarity:.3f})")
-                            
+                        """
+                        # GFPGAN restoration if available
+                        if FaceSwapper.gfpgan_restorer:
+                            x1, y1, x2, y2 = best_face.bbox.astype(int)
+                            mask = np.zeros(frame.shape[:2], dtype=np.uint8)
+                            cv2.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
+                            swapped_face = FaceSwapper.gfpgan_restorer.restore_face(swapped_face, mask)
+
+                        # Paste back into original frame
+                        final_frame = swapper.get(frame.copy(), best_face, src_face, paste_back=True)
+                        writer.write(final_frame)
+                        stats['swapped'] += 1    
             except Exception as e:
                 # Handle any errors during processing - write original frame
                 print(f"[WARN] Error processing frame {frame_idx}: {e}")
@@ -426,6 +467,10 @@ def create_argument_parser() -> argparse.ArgumentParser:
                         help="Maximum face area as ratio of frame area (0.0-1.0)")
     parser.add_argument("--min-face-size", type=int, default=50, dest="min_face_size",
                         help="Minimum face size in pixels")
+    parser.add_argument("--gfpgan-model", default=None,
+                        help="Path to GFPGAN model (.pth). If provided, restores swapped faces to reduce artifacts.")
+    parser.add_argument("--gfpgan-upscale", type=int, default=1,
+                        help="GFPGAN upscale factor (1=no upscale, 2=2x, 4=4x)")
     return parser
 
 
@@ -471,6 +516,13 @@ def main():
         print(f"[INFO] Maximum face area ratio: {config.max_face_area_ratio}")
         print(f"[INFO] Minimum face size: {config.min_face_size}")
         print(f"[INFO] Batch size: {config.batch_size}")
+        print(f"[INFO] GFGAN model: {config.gfpgan_model}")
+        print(f"[INFO] Upscale: {config.gfpgan_upscale}")
+
+        # 1. Initialize GFPGAN restorer if model path provided
+        restorer = FaceRestorer(config.gfpgan_model, upscale=config.gfpgan_upscale) if config.gfpgan_model else None
+        FaceSwapper.set_restorer(restorer)
+
         
         # Perform face swap using the static method
         result_path = FaceSwapper.face_swap(config)
