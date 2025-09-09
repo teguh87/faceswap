@@ -25,32 +25,32 @@ class FaceRestorer:
         )
         print(f"[INFO] GFPGAN initialized (upscale={upscale})")
     
-    def restore_face(self, face_img: np.ndarray, mask: Optional[np.ndarray] = None) -> np.ndarray:
+    def restore_face(self, face_img: np.ndarray, mask: Optional[np.ndarray] = None) -> Tuple[np.ndarray, np.ndarray]:
         """
         Restore and enhance a face image.
-        
         Args:
-            face_img (np.ndarray): Cropped/swapped face image (BGR).
+            face_img (np.ndarray): Full frame image (BGR).
             mask (Optional[np.ndarray]): Optional mask for the face region.
-        
         Returns:
-            np.ndarray: Restored/upscaled face image.
+            Tuple[np.ndarray, np.ndarray]: (original_input, restored_image)
         """
         try:
             restored_face, _ = self.gfpganer.enhance(
                 face_img, has_aligned=False, only_center_face=False
             )
+            
             # If mask is provided, blend the restored face with the original
             if mask is not None:
                 mask_norm = mask.astype(np.float32) / 255.0
                 if len(mask_norm.shape) == 2:
                     mask_norm = mask_norm[:, :, np.newaxis]
-                restored_face = (restored_face.astype(np.float32) * mask_norm + 
-                                 face_img.astype(np.float32) * (1 - mask_norm))
+                restored_face = (restored_face.astype(np.float32) * mask_norm +
+                            face_img.astype(np.float32) * (1 - mask_norm))
                 restored_face = np.clip(restored_face, 0, 255).astype(np.uint8)
             
-            return restored_face
-        
+            # Return tuple to match expected format: (input, restored)
+            return face_img, restored_face
+            
         except Exception as e:
             print(f"[WARN] GFPGAN face restoration failed: {e}")
-            return face_img
+            return face_img, face_img  # Return tuple even on error
