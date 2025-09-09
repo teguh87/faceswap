@@ -430,7 +430,8 @@ class FaceSwapper:
 
                             # Apply GFPGAN to the swapped frame
                             # returns: restored_face, restored_face_full
-                            restored_frame, _ = FaceSwapper.gfpgan_restorer.restore_face(swapped_frame, mask)
+                            restored_frame, _, _ = FaceSwapper.gfpgan_restorer.restore_face(swapped_frame, mask, paste_back=True)
+
 
                         else:
                             restored_frame = swapped_frame
