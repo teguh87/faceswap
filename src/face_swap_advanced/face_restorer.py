@@ -30,34 +30,25 @@ class FaceRestorer:
             face_img (np.ndarray): Full frame image (BGR).
             mask (Optional[np.ndarray]): Optional mask for the face region.
         Returns:
-            Tuple[np.ndarray, np.ndarray]: (cropped_restored_face, full_restored_image)
+            Tuple[np.ndarray, np.ndarray]: (original_input, restored_image)
         """
         try:
-            # GFPGAN enhance returns (cropped_face, restored_img)
-            cropped_face, restored_img = self.gfpganer.enhance(
+            restored_face, _ = self.gfpganer.enhance(
                 face_img, has_aligned=False, only_center_face=False
             )
             
-            # If mask is provided, blend only the masked region
+            # If mask is provided, blend the restored face with the original
             if mask is not None:
-                # Create a copy of the original image
-                final_img = face_img.copy()
-                
-                # Normalize mask
                 mask_norm = mask.astype(np.float32) / 255.0
                 if len(mask_norm.shape) == 2:
                     mask_norm = mask_norm[:, :, np.newaxis]
-                
-                # Blend restored image with original using mask
-                final_img = (restored_img.astype(np.float32) * mask_norm +
-                           final_img.astype(np.float32) * (1 - mask_norm))
-                final_img = np.clip(final_img, 0, 255).astype(np.uint8)
-                
-                return cropped_face, final_img
-            else:
-                return cropped_face, restored_img
-                
+                restored_face = (restored_face.astype(np.float32) * mask_norm +
+                            face_img.astype(np.float32) * (1 - mask_norm))
+                restored_face = np.clip(restored_face, 0, 255).astype(np.uint8)
+            
+            # Return tuple to match expected format: (input, restored)
+            return face_img, restored_face
+            
         except Exception as e:
             print(f"[WARN] GFPGAN face restoration failed: {e}")
-            # Return original image for both outputs to maintain tuple format
-            return face_img, face_img
+            return face_img, face_img  # Return tuple even on error
