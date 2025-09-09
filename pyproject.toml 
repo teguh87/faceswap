@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "face-swap-advanced"
+name = "faceswap"
 version = "1.2.0"
 authors = [
     {name = "Face Swap Developer", email = "developer@example.com"},
@@ -71,10 +71,10 @@ all = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/yourusername/face-swap-advanced"
-Documentation = "https://face-swap-advanced.readthedocs.io/"
-Repository = "https://github.com/yourusername/face-swap-advanced"
-"Bug Tracker" = "https://github.com/yourusername/face-swap-advanced/issues"
+Homepage = "https://github.com/teguh87/faceswap"
+Documentation = "https://faceswap.readthedocs.io/"
+Repository = "https://github.com/teguh87/faceswap"
+"Bug Tracker" = "https://github.com/teguh87/faceswap/issues"
 
 [project.scripts]
 face-swap = "face_swap_advanced.cli:main"

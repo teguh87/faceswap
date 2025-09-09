@@ -394,31 +394,29 @@ install_python_dependencies() {
     print_info "Installing Python dependencies..."
     cd "$INSTALL_DIR"
 
-    local requirements_files=()
-
+    # Decide extras
+    local extras=()
     if [ "$INSTALL_GPU" = true ]; then
-        print_info "Using GPU requirements..."
-        pip uninstall -y onnxruntime || true
-        requirements_files=("requirements-gpu.txt")
-    elif [ "$INSTALL_DEV" = true ]; then
-        print_info "Using development requirements..."
-        pip uninstall -y onnxruntime || true
-        requirements_files=("requirements-dev.txt")
+        extras+=("gpu")
     else
-        print_info "Using default requirements..."
-        requirements_files=("requirements.txt")
+        extras+=("cpu")
+    fi
+    if [ "$INSTALL_DEV" = true ]; then
+        extras+=("dev")
     fi
 
-    for req_file in "${requirements_files[@]}"; do
-        if [ -f "$req_file" ]; then
-            pip install -r "$req_file"
-        else
-            print_error "Requirements file not found: $req_file"
-            exit 1
-        fi
-    done
+    # Join extras with commas
+    local extras_str
+    extras_str=$(IFS=, ; echo "${extras[*]}")
 
-    pip install -e .
+    if [ -n "$extras_str" ]; then
+        print_info "Installing with extras: [$extras_str]"
+        pip install -e .["$extras_str"]
+    else
+        print_info "Installing base dependencies only"
+        pip install -e .
+    fi
+
     print_success "Python dependencies installed"
 }
 
