@@ -280,6 +280,7 @@ class FaceSwapper:
 
         # Apply GFPGAN if available
         if FaceSwapper.gfpgan_restorer:
+            print("[INFO] face restore: ")
             # Generate face mask
             mask = np.zeros(tgt_img.shape[:2], dtype=np.uint8)
             x1, y1, x2, y2 = best_face.bbox.astype(int)
@@ -349,6 +350,7 @@ class FaceSwapper:
 
                 # Process leftover frames
                 if frames_buffer:
+                    
                     batch_stats = FaceSwapper._process_frame_batch_with_filtering(
                         frames_buffer, app, swapper, src_face, ref_face, writer, pbar, config
                     )
