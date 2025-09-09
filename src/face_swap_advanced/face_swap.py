@@ -36,6 +36,11 @@ class FaceSwapConfig:
     min_similarity: float = 0.3  # Minimum similarity threshold
     max_face_area_ratio: float = 0.8  # Maximum face area as ratio of frame area
     min_face_size: int = 50  # Minimum face size in pixels
+
+    # ✅ Add GFPGAN attributes
+    gfpgan_model: Optional[str] = None
+    gfpgan_upscale: int = 1
+
     
     @classmethod
     def from_args(cls, args: argparse.Namespace) -> 'FaceSwapConfig':
@@ -56,7 +61,9 @@ class FaceSwapConfig:
             providers_override=providers_override,
             min_similarity=getattr(args, 'min_similarity', 0.3),
             max_face_area_ratio=getattr(args, 'max_face_ratio', 0.8),
-            min_face_size=getattr(args, 'min_face_size', 50)
+            min_face_size=getattr(args, 'min_face_size', 50),
+            gfpgan_model=getattr(args, 'gfpgan_model', None),
+            gfpgan_upscale=getattr(args, 'gfpgan_upscale', 1)
         )
 
 
