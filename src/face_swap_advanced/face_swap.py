@@ -421,7 +421,6 @@ class FaceSwapper:
                         """
                         # Step 2: restore with GFPGAN if available
                         if FaceSwapper.gfpgan_restorer:
-                            # Create mask with optional padding
                             pad = 15
                             mask = np.zeros(frame.shape[:2], dtype=np.uint8)
                             x1, y1, x2, y2 = best_face.bbox.astype(int)
@@ -429,8 +428,9 @@ class FaceSwapper:
                             x2, y2 = min(frame.shape[1], x2+pad), min(frame.shape[0], y2+pad)
                             cv2.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
 
-                            # Restore face (v1.x API)
-                            restored_face, restored_full = FaceSwapper.gfpgan_restorer.restore_face(swapped_frame, mask)
+                            # Safe unpacking
+                            outputs = FaceSwapper.gfpgan_restorer.restore_face(swapped_frame, mask)
+                            restored_full = outputs[1]  # second output is the full image
 
                             # Paste manually
                             final_frame = frame.copy()
@@ -440,6 +440,7 @@ class FaceSwapper:
 
                             writer.write(final_frame)
                             stats['swapped'] += 1
+
 
             except Exception as e:
                 # Handle any errors during processing - write original frame
