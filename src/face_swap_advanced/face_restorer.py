@@ -23,32 +23,34 @@ class FaceRestorer:
         )
         print(f"[INFO] GFPGAN initialized (upscale={upscale})")
     
-    def restore_face(self, face_img: np.ndarray, mask: Optional[np.ndarray] = None) -> Tuple[np.ndarray, np.ndarray]:
-        """
-        Restore and enhance a face image.
-        Args:
-            face_img (np.ndarray): Full frame image (BGR).
-            mask (Optional[np.ndarray]): Optional mask for the face region.
-        Returns:
-            Tuple[np.ndarray, np.ndarray]: (original_input, restored_image)
-        """
+    def restore_face(self, face_img: np.ndarray, mask: Optional[np.ndarray] = None) -> np.ndarray:
         try:
-            restored_face, _ = self.gfpganer.enhance(
+            outputs = self.gfpganer.enhance(
                 face_img, has_aligned=False, only_center_face=False
             )
-            
-            # If mask is provided, blend the restored face with the original
-            if mask is not None:
+
+            # Handle multiple GFPGAN versions
+            if isinstance(outputs, (tuple, list)):
+                restored_face = outputs[0]
+            elif isinstance(outputs, dict):
+                restored_face = outputs.get('restored_img', face_img)
+            else:
+                restored_face = outputs
+
+            # Ensure shape matches input
+            if restored_face.shape != face_img.shape:
+                restored_face = cv2.resize(restored_face, (face_img.shape[1], face_img.shape[0]))
+
+            # Blend with mask if provided
+            if mask is not None and mask.size > 0:
                 mask_norm = mask.astype(np.float32) / 255.0
                 if len(mask_norm.shape) == 2:
                     mask_norm = mask_norm[:, :, np.newaxis]
-                restored_face = (restored_face.astype(np.float32) * mask_norm +
-                            face_img.astype(np.float32) * (1 - mask_norm))
+                restored_face = restored_face.astype(np.float32) * mask_norm + face_img.astype(np.float32) * (1 - mask_norm)
                 restored_face = np.clip(restored_face, 0, 255).astype(np.uint8)
-            
-            # Return tuple to match expected format: (input, restored)
-            return face_img, restored_face
-            
+
+            return restored_face
+
         except Exception as e:
             print(f"[WARN] GFPGAN face restoration failed: {e}")
-            return face_img, face_img  # Return tuple even on error
+            return face_img
