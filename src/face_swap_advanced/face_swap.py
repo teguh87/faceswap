@@ -413,43 +413,105 @@ class FaceSwapper:
                     else:
                         # Perform face swap
                         swapped_frame = swapper.get(frame.copy(), best_face, src_face, paste_back=True)
-                        """
-                        writer.write(result_frame)
-                        stats['swapped'] += 1
+                        
                         if config.debug:
                             print(f"[DEBUG] Frame {frame_idx}: Face swapped (similarity: {similarity:.3f})")
-                        """
-                        # Step 2: restore with GFPGAN if available
+                        
+                        # Step 2: Restore with GFPGAN if available
                         if FaceSwapper.gfpgan_restorer:
-                            pad = 15
-                            mask = np.zeros(frame.shape[:2], dtype=np.uint8)
-                            x1, y1, x2, y2 = best_face.bbox.astype(int)
-                            x1, y1 = max(0, x1-pad), max(0, y1-pad)
-                            x2, y2 = min(frame.shape[1], x2+pad), min(frame.shape[0], y2+pad)
-                            cv2.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
-
-                            # Apply GFPGAN and safe unpacking
-                            outputs = FaceSwapper.gfpgan_restorer.restore_face(swapped_frame, mask)
-                            restored_full = outputs[1]  # second output is the full image
-
-                            # Paste back into frame safely
-                            final_frame = frame.copy()
-                            roi = restored_full[y1:y2, x1:x2]
-                            mask_roi = mask[y1:y2, x1:x2]
-
-                            # Ensure shapes match
-                            if roi.shape[:2] != mask_roi.shape:
-                                mask_roi = cv2.resize(mask_roi, (roi.shape[1], roi.shape[0]))
-
-                            # Optional: smooth mask edges
-                            mask_roi = cv2.GaussianBlur(mask_roi, (7, 7), 0)
-
-                            final_frame[y1:y2, x1:x2] = np.where(mask_roi[..., None] > 0, roi, final_frame[y1:y2, x1:x2])
-
-                            writer.write(final_frame)
+                            try:
+                                pad = 15
+                                mask = np.zeros(frame.shape[:2], dtype=np.uint8)
+                                x1, y1, x2, y2 = best_face.bbox.astype(int)
+                                x1, y1 = max(0, x1-pad), max(0, y1-pad)
+                                x2, y2 = min(frame.shape[1], x2+pad), min(frame.shape[0], y2+pad)
+                                
+                                # Validate bounding box
+                                if x2 <= x1 or y2 <= y1:
+                                    if config.debug:
+                                        print(f"[DEBUG] Frame {frame_idx}: Invalid bounding box, skipping GFPGAN")
+                                    writer.write(swapped_frame)
+                                    stats['swapped'] += 1
+                                else:
+                                    cv2.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
+                                    
+                                    # Apply GFPGAN with proper unpacking
+                                    outputs = FaceSwapper.gfpgan_restorer.restore_face(swapped_frame, mask)
+                                    
+                                    # Handle different return formats from GFPGAN
+                                    if isinstance(outputs, tuple):
+                                        if len(outputs) == 2:
+                                            _, restored_full = outputs
+                                        elif len(outputs) == 3:
+                                            _, restored_full, _ = outputs
+                                        else:
+                                            if config.debug:
+                                                print(f"[DEBUG] Frame {frame_idx}: Unexpected GFPGAN output format: {len(outputs)} values")
+                                            writer.write(swapped_frame)
+                                            stats['swapped'] += 1
+                                            continue
+                                    else:
+                                        # Single return value
+                                        restored_full = outputs
+                                    
+                                    # Validate restored image
+                                    if restored_full is None or restored_full.size == 0:
+                                        if config.debug:
+                                            print(f"[DEBUG] Frame {frame_idx}: GFPGAN returned empty image")
+                                        writer.write(swapped_frame)
+                                        stats['swapped'] += 1
+                                    elif restored_full.shape != frame.shape:
+                                        if config.debug:
+                                            print(f"[DEBUG] Frame {frame_idx}: Restored image shape mismatch")
+                                        writer.write(swapped_frame)
+                                        stats['swapped'] += 1
+                                    else:
+                                        # Apply restoration successfully
+                                        final_frame = frame.copy()
+                                        roi = restored_full[y1:y2, x1:x2]
+                                        mask_roi = mask[y1:y2, x1:x2]
+                                        
+                                        # Validate ROI and mask shapes
+                                        if roi.size == 0 or mask_roi.size == 0:
+                                            if config.debug:
+                                                print(f"[DEBUG] Frame {frame_idx}: Empty ROI or mask region")
+                                            writer.write(swapped_frame)
+                                            stats['swapped'] += 1
+                                        else:
+                                            # Ensure shapes match before resizing
+                                            if roi.shape[:2] != mask_roi.shape:
+                                                if roi.shape[0] > 0 and roi.shape[1] > 0:
+                                                    mask_roi = cv2.resize(mask_roi, (roi.shape[1], roi.shape[0]))
+                                                else:
+                                                    if config.debug:
+                                                        print(f"[DEBUG] Frame {frame_idx}: Invalid ROI shape for resize")
+                                                    writer.write(swapped_frame)
+                                                    stats['swapped'] += 1
+                                                    continue
+                                            
+                                            # Optional: smooth mask edges
+                                            mask_roi = cv2.GaussianBlur(mask_roi, (7, 7), 0)
+                                            
+                                            # Apply the restoration
+                                            mask_3d = mask_roi[..., None] if len(mask_roi.shape) == 2 else mask_roi
+                                            final_frame[y1:y2, x1:x2] = np.where(mask_3d > 0, roi, final_frame[y1:y2, x1:x2])
+                                            
+                                            writer.write(final_frame)
+                                            stats['swapped'] += 1
+                                            
+                                            if config.debug:
+                                                print(f"[DEBUG] Frame {frame_idx}: GFPGAN restoration applied successfully")
+                            
+                            except Exception as gfpgan_error:
+                                print(f"[WARN] GFPGAN restoration failed for frame {frame_idx}: {gfpgan_error}")
+                                # Fall back to swapped frame without restoration
+                                writer.write(swapped_frame)
+                                stats['swapped'] += 1
+                        else:
+                            # No GFPGAN restorer available - use swapped frame
+                            writer.write(swapped_frame)
                             stats['swapped'] += 1
-
-
+                            
             except Exception as e:
                 # Handle any errors during processing - write original frame
                 print(f"[WARN] Error processing frame {frame_idx}: {e}")
