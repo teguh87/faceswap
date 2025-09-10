@@ -29,8 +29,10 @@ class FaceRestorer:
                 face_img, has_aligned=False, only_center_face=False
             )
 
-            # Handle multiple GFPGAN versions
-            if isinstance(outputs, (tuple, list)):
+            # GFPGAN may return a list of restored faces
+            if isinstance(outputs, list):
+                restored_face = outputs[0]  # pick the first face
+            elif isinstance(outputs, (tuple)):
                 restored_face = outputs[0]
             elif isinstance(outputs, dict):
                 restored_face = outputs.get('restored_img', face_img)
@@ -54,3 +56,4 @@ class FaceRestorer:
         except Exception as e:
             print(f"[WARN] GFPGAN face restoration failed: {e}")
             return face_img
+
