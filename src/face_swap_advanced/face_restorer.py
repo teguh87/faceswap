@@ -24,30 +24,14 @@ class FaceRestorer:
         print(f"[INFO] GFPGAN initialized (upscale={upscale})")
     
     def restore_face(self, face_img: np.ndarray, mask: Optional[np.ndarray] = None) -> np.ndarray:
-        """
-        Restore and enhance a face image using GFPGAN, with debug output.
-        
-        Args:
-            face_img (np.ndarray): Cropped/swapped face image (BGR).
-            mask (Optional[np.ndarray]): Optional mask for the face region.
-        
-        Returns:
-            np.ndarray: Restored/upscaled face image.
-        """
         try:
             print("[DEBUG] Restoring face with GFPGAN...")
             outputs = self.gfpganer.enhance(face_img, has_aligned=False, only_center_face=False)
+            print(f"[DEBUG] GFPGAN outputs type: {type(outputs)}, length: {len(outputs)}")
 
-            print(f"[DEBUG] GFPGAN outputs type: {type(outputs)}, length: {len(outputs) if hasattr(outputs, '__len__') else 'N/A'}")
-
-            # GFPGAN returns tuple of lists: (restored_faces_list, restored_full_list)
-            if isinstance(outputs, tuple) and len(outputs) == 2:
-                restored_faces_list, restored_full_list = outputs
-                print(f"[DEBUG] restored_faces_list length: {len(restored_faces_list)}")
-                print(f"[DEBUG] restored_full_list length: {len(restored_full_list)}")
-                
-                # Use the first restored full image
-                restored_face = restored_full_list[0]
+            # Always take the last element as full restored image
+            if isinstance(outputs, tuple) and len(outputs) >= 2:
+                restored_face = outputs[-1][0]  # first image in the last list
                 print(f"[DEBUG] Restored full face shape: {restored_face.shape}")
             else:
                 print("[WARN] Unexpected GFPGAN output format. Returning original face.")
@@ -68,5 +52,6 @@ class FaceRestorer:
         except Exception as e:
             print(f"[WARN] GFPGAN face restoration failed: {e}")
             return face_img
+
 
 
