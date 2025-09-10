@@ -27,16 +27,34 @@ class FaceRestorer:
         try:
             print("[DEBUG] Restoring face with GFPGAN...")
             outputs = self.gfpganer.enhance(face_img, has_aligned=False, only_center_face=False)
-            print(f"[DEBUG] GFPGAN outputs type: {type(outputs)}, length: {len(outputs)}")
 
+            # Print structure of outputs
+            if isinstance(outputs, tuple):
+                print(f"[DEBUG] GFPGAN returned tuple of length {len(outputs)}")
+                for i, elem in enumerate(outputs):
+                    if isinstance(elem, list):
+                        print(f"  [DEBUG] Element {i} is a list with {len(elem)} items. First item shape: {elem[0].shape if len(elem) > 0 else 'empty'}")
+                    elif isinstance(elem, np.ndarray):
+                        print(f"  [DEBUG] Element {i} is ndarray with shape {elem.shape}")
+                    else:
+                        print(f"  [DEBUG] Element {i} type: {type(elem)}")
+            else:
+                print(f"[DEBUG] GFPGAN returned {type(outputs)}")
+
+            # Try to pick the best candidate
             restored_face = None
-
-            if isinstance(outputs, tuple) and len(outputs) >= 2:
-                # Try the last element (full restored image list)
-                candidates = outputs[-1]
-                if isinstance(candidates, list) and len(candidates) > 0:
-                    restored_face = candidates[0]
-                    print(f"[DEBUG] Candidate restored face shape: {restored_face.shape}")
+            if isinstance(outputs, tuple):
+                # Look for any ndarray that matches or is close to face_img size
+                for elem in outputs:
+                    if isinstance(elem, list) and len(elem) > 0 and isinstance(elem[0], np.ndarray):
+                        candidate = elem[0]
+                        if candidate.shape[:2] == face_img.shape[:2]:
+                            restored_face = candidate
+                            print(f"[DEBUG] Selected candidate with matching shape {candidate.shape}")
+                            break
+                        else:
+                            print(f"[DEBUG] Candidate shape {candidate.shape} (will resize)")
+                            restored_face = candidate
             elif isinstance(outputs, np.ndarray):
                 restored_face = outputs
 
@@ -44,7 +62,7 @@ class FaceRestorer:
                 print("[WARN] Could not extract valid restored face, using original.")
                 return face_img
 
-            # Ensure shape matches input
+            # Resize if needed
             if restored_face.shape != face_img.shape:
                 print(f"[DEBUG] Resizing restored face from {restored_face.shape} to {face_img.shape}")
                 restored_face = cv2.resize(restored_face, (face_img.shape[1], face_img.shape[0]))
@@ -64,6 +82,7 @@ class FaceRestorer:
         except Exception as e:
             print(f"[WARN] GFPGAN face restoration failed: {e}")
             return face_img
+
 
 
 
